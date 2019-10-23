@@ -24,7 +24,7 @@ namespace ConsoleApp1.Actors
         {
             if (message.Equals(StartCommand))
             {
-                Console.WriteLine("Please provide file directory:\n");
+                _consoleWriter.Tell(new ResultSuccessfulMessage($"Please provide file directory:"));
             }
 
             if (message.Equals(ExitCommand))
@@ -40,8 +40,6 @@ namespace ConsoleApp1.Actors
                     Context.ActorOf(Props.Create(() => new FileReaderActor(_currencyChecker, file)));
                 }
             }
-
-            // TODO: do something else?
         }
 
         // here we are overriding the default SupervisorStrategy

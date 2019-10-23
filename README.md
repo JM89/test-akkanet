@@ -67,8 +67,8 @@ Whereas you instantiate objects in the current thread of execution, you can thin
 
 If you remember nothing else, remember this: threads share state, actors share nothing.
 
-![traditional_oop_large](\images\traditional_oop_large.png)
-![actor_model_large](\images\actor_model_large.png)
+![traditional_oop_large](images/traditional_oop_large.png)
+![actor_model_large](images/actor_model_large.png)
 
 Distribution: The second implication of share nothing is that technically actors don't have to live on the same machine. In fact, certain implementations of the actor model (like the Erlang VM) let you spawn actors transparently on different nodes. That is the beauty of the actor model: it redefines what concurrency is. Traditionally concurrency is thought of as using multiple cores on one machine at the same time. In the world of actors, the concept of concurrency not only includes scaling across CPU cores, but scaling across a computer network.
 
@@ -109,9 +109,9 @@ The whole point of supervision strategies and directives is to contain failure w
 
 Eg. Implementation of a file reader
 
-[File Reader Implementation](https://github.com/petabridge/akka-bootcamp/tree/master/src/Unit-1/lesson4/Completed)
+![img](images/App1-01.png)
 
-![img](images/system_overview.png)
+![img](images/App1-02.png)
 
 #### Actor Selection
 
