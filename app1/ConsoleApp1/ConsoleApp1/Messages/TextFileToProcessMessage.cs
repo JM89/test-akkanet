@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ConsoleApp1.Messages
+﻿namespace ConsoleApp1.Messages
 {
     public class TextFileToProcessMessage
     {

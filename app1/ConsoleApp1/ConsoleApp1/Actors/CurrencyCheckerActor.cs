@@ -1,12 +1,8 @@
 ﻿using Akka.Actor;
 using ConsoleApp1.Messages;
 using Flurl.Http;
-using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace ConsoleApp1.Actors
 {
@@ -30,11 +26,11 @@ namespace ConsoleApp1.Actors
                 try
                 {
                     var result = $"{BaseUrl}{msg.Currency}".GetJsonAsync<ExchangeRates>(_cancel.Token).GetAwaiter().GetResult();
-                    this._consoleWriter.Tell(new ResultSuccessfulMessage($"Conversion rate ({msg.Currency}->EUR) = {result.rates[msg.Currency]}"));
+                    this._consoleWriter.Tell(new ResultSuccessfulMessage($"{msg.Origin}: Conversion rate ({msg.Currency}->EUR) = {result.rates[msg.Currency]}"));
                 }
-                catch (FlurlHttpException ex)
+                catch 
                 {
-                    this._consoleWriter.Tell(new ResultErrorMessage($"Status Code = {ex.Message}"));
+                    this._consoleWriter.Tell(new ResultErrorMessage($"{msg.Origin}: Conversion rate ({msg.Currency}->EUR) failed"));
                 }
             }
             else if (message is CancelMessage)
