@@ -10,12 +10,62 @@
 
 ## Actor Model
 
-The actor model is a conceptual model to deal with concurrent computation. It defines some general rules for how the system's components should behave and interact with each other. 
+### But Why?
 
-Just like how everything is an object in OOP, in the actor model everything is an actor. Think of designing your system like a hierarchy of people, with tasks being split up and delegated until they become small enough to be handled concisely by one actor. 
+The Actor Model is a paradigm born to solve issues that OOP was not originally designed for. Instead of thinking of objects, we think in terms of actors that interact with each other by intermediary of ummutable messages. 
 
-Other things to try:
-* https://www.youtube.com/watch?v=6c1gVLyYcMM
+#### OOP & Multithreading
+
+We rarely work with single-threaded applications. Very often, we have to work with long running jobs, blocking network or IO operations... and if you want to have a little bit of efficiency to your system, you would need to work with multi-threading. OOP was not really optimised for concurrency and in order to protect your objects' state of race conditions, we rely on locks (on a more or less abstracted way).
+
+```csharp
+class Test1
+{    
+     private IList<int> _data;
+
+     public bool updateData(){
+          _data.Add(_data.Count()); // would require a lock to work properly or use a concurrent collection
+     }
+}
+
+class Program
+{
+     void main()
+     {
+          var test = new Test1();
+	  Task.Run(() => (test.updateData());
+	  Task.Run(() => (test.updateData());
+     }
+}
+```
+
+In the actor model approach, each actor has its own dedicated thread and memory, built-in into the frameworks. You won't have to manage yourselves the threads, each actor lives isolated from each other and share nothing: 
+
+| Traditional OOP | Actor Model |
+| ------------- | ------------- |
+| ![traditional_oop_large](images/traditional_oop_large.png)  | ![actor_model_large](images/actor_model_large.png) |
+
+#### Encapsulation
+
+One of the important principle of OOP is encapsulation, the internal object state is only accessible through getters and setters from the other classes. By not letting the actors calling directly each other, the actor model covers the encapsulation in a more isolated way.
+
+### Concepts
+
+#### Actor Communication
+
+#### Hierarchy & Supervision
+
+## Actor Model Frameworks in .NET
+
+## Integration with the REST of the world
+
+### Distributed Services
+
+### Integration to ASP.NET Core
+
+# Notes
+
+## Actor Model
 
 ### Proto.Actor
 
@@ -32,40 +82,6 @@ Proto.Actor also uses gRPC, leveraging HTTP/2 streams for network communication.
 [Benchmark Akka.NET vs Proto.Actor](https://github.com/Blind-Striker/actor-model-benchmarks)
 
 ### Actors vs Objects
-
-In a single-threaded program, (and implementation details aside) they are essentially identical. Having said that, most applications and systems that serve humans don't live in in this fantasy land of single-threaded execution. Long-running jobs, blocking IO and high volumes of concurrent connections that if handled naively in a single thread of execution would result in unusably slow applications, memory problems, crashes, and timeouts.
-
-Traditional OOP languages weren't designed with concurrency as a first-class use case. While they do support the ability to spawn multiple threads, anyone who's done multi-threaded programming with these languages knows how easy it is to introduce race conditions (e.g. data desynchronization or corruption). 
-
-```ruby
-class DeepThought
-  def initialize(state)
-    @state = state
-  end
-
-  def meaning_of_life
-    # This is a long running calculation where
-    # @state gets mutated frequently to hold
-    # intermediary calculations
-  end
-end
-
-dt = DeepThought.new(data)
-
-Thread.new { dt.meaning_of_life }
-Thread.new { dt.meaning_of_life }
-
-#=> BOOM!
-```
-
-Most conventional OOP languages provide locks or mutexes as the solution to this problem. It's as if the program is saying: "Hey guys, I'm doing stuff with this data, don't touch it until after I'm done".
-
-Whereas you instantiate objects in the current thread of execution, you can think of creating actors as spawning a new thread/process for each actor created. Not only do actors persist indefinitely in their own thread, they also have their own dedicated memory space and share no memory with other actors.
-
-If you remember nothing else, remember this: threads share state, actors share nothing.
-
-![traditional_oop_large](images/traditional_oop_large.png)
-![actor_model_large](images/actor_model_large.png)
 
 Distribution: The second implication of share nothing is that technically actors don't have to live on the same machine. In fact, certain implementations of the actor model (like the Erlang VM) let you spawn actors transparently on different nodes. That is the beauty of the actor model: it redefines what concurrency is. Traditionally concurrency is thought of as using multiple cores on one machine at the same time. In the world of actors, the concept of concurrency not only includes scaling across CPU cores, but scaling across a computer network.
 
