@@ -49,7 +49,15 @@ In the actor model approach, each actor has its own dedicated thread and memory,
 
 One of the important principle of OOP is encapsulation, the internal object state is only accessible through getters and setters from the other classes. By not letting the actors calling directly each other, the actor model covers the encapsulation in a more isolated way.
 
-### Concepts
+### Main concepts
+
+App1 solution is a sample code for discovering the main concepts. 
+
+The aim of the application is to read all the files of a directory provided by the user. Each files contain a list of currency for which we call an API to retrieve current FX rates. We define 4 actor type of actors: 
+* **Console Reader Actor** (cr): who reads from the Console 
+* **Console Writer Actor** (cw): who writes to the console
+* **Currency Checker Actor** (cc): who will call the FX API
+* **File Reader Actors** (fr0): spawned by the Console Reader for each file to read the file one row at a time and tell the currency to process to the currency checker
 
 #### Actor Communication
 
