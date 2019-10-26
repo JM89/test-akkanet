@@ -6,16 +6,13 @@
 - [Akka.NET API Doc](http://api.getakka.net/docs/stable/html/5590F8C9.htm)
 - [Actors Vs Objects](https://anthonylebrun.silvrback.com/actors-vs-objects)
 - [Akka.NET Stumbling Blocks](https://petabridge.com/blog/top-7-akkadotnet-stumbling-blocks/)
+- [What problems does the actor model solve?](https://doc.akka.io/docs/akka/2.5.3/scala/guide/actors-intro.html)
 
 ## Actor Model
 
 The actor model is a conceptual model to deal with concurrent computation. It defines some general rules for how the system's components should behave and interact with each other. 
 
 Just like how everything is an object in OOP, in the actor model everything is an actor. Think of designing your system like a hierarchy of people, with tasks being split up and delegated until they become small enough to be handled concisely by one actor. 
-
-How they differ: 
-* [What problems does the actor model solve?
-](https://doc.akka.io/docs/akka/2.5.3/scala/guide/actors-intro.html)
 
 Other things to try:
 * https://www.youtube.com/watch?v=6c1gVLyYcMM
