@@ -53,7 +53,7 @@ One of the important principle of OOP is encapsulation, the internal object stat
 
 App1 solution is a sample code for discovering the main concepts. 
 
-The aim of the application is to read all the files of a directory provided by the user. Each files contain a list of currency for which we call an API to retrieve current FX rates. We define 4 actor type of actors: 
+The aim of the application is to read all the files of a directory provided by the user. Each files contain a list of currencies for which we call an API to retrieve current FX rates. We define 4 actor type of actors: 
 * **Console Reader Actor** (cr): who reads from the Console 
 * **Console Writer Actor** (cw): who writes to the console
 * **Currency Checker Actor** (cc): who will call the FX API
