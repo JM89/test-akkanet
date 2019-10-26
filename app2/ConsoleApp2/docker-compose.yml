@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  lighthouse:
+    image: petabridge/lighthouse:v0.9.2
+    ports:
+      - '9110:9110'
+      - '4053:4053'
+    environment:
+      ACTORSYSTEM: "mycluster"
+      CLUSTER_IP: lighthouse
+      CLUSTER_PORT: 4053
+      CLUSTER_SEEDS: "akka.tcp://mycluster@lighthouse:4053"
+
+  ConsoleApp2.Ping:
+    image: ConsoleApp2.Ping
+    build:
+      context: .
+      dockerfile: src/ConsoleApp2.Ping/Dockerfile
+    ports:
+      - '8080:80'
+    environment:
+      CLUSTER_SEEDS: "akka.tcp://webcrawler@lighthouse:4053"
+      CLUSTER_IP: ConsoleApp2.Ping
+      CLUSTER_PORT: 0
+    depends_on:
+      - "lighthouse"
+
+  ConsoleApp2.Pong:
+    image: ConsoleApp2.Pong
+    build:
+      context: .
+      dockerfile: src/ConsoleApp2.Pong/Dockerfile
+    environment:
+      CLUSTER_SEEDS: "akka.tcp://webcrawler@lighthouse:4053"
+      CLUSTER_IP: ConsoleApp2.Pong
+      CLUSTER_PORT: 0
+    depends_on:
+      - "lighthouse"

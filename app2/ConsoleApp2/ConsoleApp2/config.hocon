@@ -1,0 +1,17 @@
+﻿akka {
+	actor {
+		provider = cluster
+	}
+						
+	remote {
+		dot-netty.tcp {
+				hostname = "127.0.0.1"
+				port = 0
+			}
+	}			
+
+	cluster {
+		seed-nodes = ["akka.tcp://mycluster@localhost:4053"] 
+		roles = ["mainservice"]
+	}
+}

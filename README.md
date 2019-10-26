@@ -105,7 +105,11 @@ When it receives an error from its child, a parent can take one of the following
 
 Types of supervision directives (i.e. what decisions a supervisor can make): Restart the child (default); Stop the child (permanently terminates), Escalate the error (and stop itself): this is the parent saying "I don't know what to do! I'm gonna stop everything and ask MY parent!", Resume processing (ignores the error). There are two built-in supervision strategies: One-For-One says that the directive issued by the parent only applies to the failing child actor. All-For-One says that the directive issued by the parent applies to the failing child actor AND all of its siblings.
 
-The whole point of supervision strategies and directives is to contain failure within the system and self-heal, so the whole system doesn't crash. We push potentially-dangerous operations from a parent to a child, whose only job is to carry out the dangerous task (such as a nasty network call).
+The whole point of supervision strategies and directives is to contain failure within the system and self-heal, so the whole system doesn't crash. We push potentially-dangerous operations from a parent to a child, whose only job is to carry out the dangerous task (such as a nasty network call). 
+
+If the parent actor is stopped, all of its children are recursively stopped, too. 
+
+Restarts are not visible from the outside: collaborating actors can keep continuing sending messages while the target actor restarts.
 
 Eg. Implementation of a file reader
 
@@ -239,3 +243,46 @@ How to expose your actor based system to the world? You can try to do so by leve
 [Proposed Implementation](https://havret.io/akka-net-asp-net-core)
 [Code Sample](https://github.com/Havret/akka-net-asp-net-core)
 [Another Example](https://medium.com/@FurryMogwai/building-a-basket-micro-service-using-asp-net-core-and-akka-net-ea2a32ca59d5)
+
+### Akka Cluster
+
+https://github.com/petabridge/akkadotnet-code-samples/tree/master/Cluster.WebCrawler
+https://www.freecodecamp.org/news/how-to-make-a-simple-application-with-akka-cluster-506e20a725cf/
+
+An akka cluster represents a fault-tolerant, elastic, decentralized peer-to-peer network of Akka.NET applications with no single point of failure or bottleneck
+
+Akka.Cluster is a layer of abstraction on top of Akka.Remote, that puts Remoting to use for a specific structure: clusters of applications. Under the hood, Akka.Remote powers Akka.Cluster, so anything you could do with Akka.Remote is also supported by Akka.Cluster.
+
+Akka Cluster gives you out-of-the-box the discovery of members in the same cluster. Using Cluster Aware Routers it is possible to balance the messages between actors in different nodes. It is also possible to choose the balancing policy, making load-balancing a piece of cake!
+
+#### Types of routers:
+
+* Group Router: The actors to send the messages to — called routees — are specified using their actor path. The routers share the routees created in the cluster. 
+
+![Group Router](\images\1_aRVBb-_v2dBpTV8m97Pd3w.png)
+
+
+* Pool Router — The routees are created and deployed by the router, so they are its children in the actor hierarchy. Routees are not shared between routers. This is ideal for a master-slave scenario, where each router is the master and its routees the slaves.
+
+![Pool Router](\images\1_ofa_x3hkM_sMzH5Nzum_Gg.png)
+
+#### Use Cases
+
+Akka.Cluster lends itself naturally to high availability scenarios.
+
+To put it bluntly, you should use clustering in any scenario where you have some or all of the following conditions:
+* A sizable traffic load
+* Non-trivial to perform
+* An expectation of fast response times
+* The need for elastic scaling (e.g. bursty workloads)
+* A microservices architecture
+
+Some of the use cases where Akka.Cluster emerges as a natural fit are in:
+* Analytics
+* Marketing Automation
+* Multiplayer Games
+* Devices Tracking / Internet of Things
+* Alerting & Monitoring Systems
+* Recommendation Engines
+* Dynamic Pricing
+* ...

@@ -1,0 +1,38 @@
+﻿akka {
+	actor {
+		provider = cluster
+		deployment {
+			/ping {
+				router = routerping
+				routees.paths = ["/user/ping"]
+				cluster {
+					enabled = on
+					allow-local-routees = on
+					use-role = ping
+				}
+			}
+
+			/pong {
+				router = routerpong
+				routees.paths = ["/user/pong"]
+				cluster {
+					enabled = on
+					allow-local-routees = on
+					use-role = ping
+				}
+			}
+		}
+	}
+						
+	remote {
+		dot-netty.tcp {
+				hostname = "127.0.0.1"
+				port = 0
+			}
+	}			
+
+	cluster {
+		seed-nodes = ["akka.tcp://mycluster@localhost:4053"] 
+		roles = ["ping"]
+	}
+}
