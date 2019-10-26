@@ -21,7 +21,7 @@ We rarely work with single-threaded applications. Very often, we have to work wi
 ```csharp
 class Test1
 {    
-     private IList<int> _data;
+     private IList<int> _data = new List<int>();
 
      public bool updateData(){
           _data.Add(_data.Count()); // would require a lock to work properly or use a concurrent collection
