@@ -91,13 +91,26 @@ Another way of sending messages is to use explicitly its receiver address or Act
 ```text
 akka.tcp://MyActorSystem@localhost:9001/user/mynode/mychild
 ```
-
 Example of use:
 ```csharp
 Context.ActorSelection("akka://MyActorSystem/user/validationActor").Tell(message);
 ```
 
 As an alternative, you can pass an IActorRef inside a message to hide the actor-implementation chosen from the receiver (and promote loose coupling). 
+
+One constraint is that messages must be immutables. If they can't be made immutables for some reasons, enforcing serializing the messages in the configuration, will make sure that a new copy of the message is provided every time. 
+
+```csharp
+public class ImmutableMessage{
+	public ImmutableMessage(string name, ReadOnlyList<int> points){
+		Name = name;
+		Points = points;
+	}
+
+	public string Name {get; private set;}
+	public ReadOnlyList<int> Points {get; private set;}
+}
+```
 
 #### Hierarchy & Supervision
 
@@ -115,6 +128,8 @@ Note that if a parent is stopped, all children will be recursively stopped as we
 
 ![lifecycle](\images\lifecycle_methods.png)
 
+Because of the nature of actors, Dependency Injection will not necessarily work that well with the actors and can't be relied on.  
+
 ## Actor Model Frameworks in .NET
 
 There are few actor model frameworks in .NET:
@@ -124,158 +139,29 @@ There are few actor model frameworks in .NET:
 
 [Benchmark Akka.NET vs Proto.Actor](https://github.com/Blind-Striker/actor-model-benchmarks)
 
-## Integration with the REST of the world
-
-### Distributed Services
-
-### Integration to ASP.NET Core
-
-# Notes
-
-### Stumbling blocks
-
-#### Messages are immutables
-
-One of the fundamental principles of designing actor-based systems is to make 100% of all message classes immutable, meaning that once you allocate an instance of that object its state can never be modified again.
-
-```csharp
-public class ImmutableMessage{
-	public ImmutableMessage(string name, ReadOnlyList<int> points){
-		Name = name;
-		Points = points;
-	}
-
-	public string Name {get; private set;}
-	public ReadOnlyList<int> Points {get; private set;}
-}
-```
-
-**Hack**:
-If you can't make the class immutable, there is a [HOCON configuration](https://getakka.net/articles/concepts/configuration.html) setting  you can turn on that will force each message to be serialized and deserialized to each actor who receives it, which guarantees that each actor receives their own unique copy of the message (akka.actor.serialize-messages). Intended for testing only, serialization is costly.
+### Akka.Net 
 
 #### Cancellable long-running actions inside OnReceive
 
-Actors process exactly one message at a time inside their Receive method, as shown below. This makes it extremely simple to program actors, because you never have to worry about race conditions affecting the internal state of an actor when it can only process one message at a time.
+Out of the box, Akka.Net does not support very well awaitable methods and long-running actions. In an Actor System, the overall system is managed asynchronously, but the behavior when a message is received is expected to be synchronous. The main problem is that while a message is being processed, no other messages can be received, specially the "system" messages (such as exit command when stopping the application). There is workaround using a cancellable task and [pipes](https://petabridge.com/blog/akkadotnet-async-actors-using-pipeto/) available. 
 
-Unfortunately, there’s a price you pay for this: if you stick a long-running operation inside your Receive method then your actors will be unable to process any messages, including system messages, until that operation finishes. And if it’s possible that the operation will never finish, it’s possible to deadlock your actor.
+#### Integration with the REST of the world
 
-The solution to this is simple: you need to encapsulate any long-running I/O-bound or CPU-bound operations inside a Task and make it possible to cancel that task from within the actor.
+While the Akka.Remote and Akka.Cluster allows to deploy distributed actor systems, we can't enforce that all our apps will work with Actors. They are likely to use REST instead. Below are two projects give an example of integration of actors inside an ASP.NET Core project:
+* [Proposed Implementation](https://havret.io/akka-net-asp-net-core) & [Code Sample](https://github.com/Havret/akka-net-asp-net-core)
+* [Another Example](https://medium.com/@FurryMogwai/building-a-basket-micro-service-using-asp-net-core-and-akka-net-ea2a32ca59d5)
 
-```csharp
-public class FooActor : ReceiveActor,
-						IWithUnboundedStash{
+#### Distributed Services
 
-	private Task _runningTask;
-	private CancellationTokenSource _cancel;
+Akka.Cluster is a layer of abstraction on top of Akka.Remote to give the ability of discovering members in the same cluster and using routers to balance the messages between actors in different nodes.
 
-	public IStash Stash {get; set;}
-
-	public FooActor(){
-		_cancel = new CancellationTokenSource();
-		Ready();
-	}
-
-	private void Ready(){
-		Receive<Start>(s => {
-			var self = Self; // closure
-			_runningTask = Task.Run(() => {
-				// ... work
-			}, _cancel.Token).ContinueWith(x =>
-			{
-				if(x.IsCancelled || x.IsFaulted)
-					return new Failed();
-				return new Finished();
-			}, TaskContinuationOptions.ExecuteSynchronously)
-			.PipeTo(self);
-
-			// switch behavior
-			Become(Working);
-		})
-	}
-
-	private void Working(){
-		Receive<Cancel>(cancel => {
-			_cancel.Cancel(); // cancel work
-			BecomeReady();
-		});
-		Receive<Failed>(f => BecomeReady());
-		Receive<Finished>(f => BecomeReady());
-		ReceiveAny(o => Stash.Stash());
-	}
-
-	private void BecomeReady(){
-		_cancel = new CancellationTokenSource();
-		Stash.UnstashAll();
-		Become(Ready);
-	}
-}
-```
-
-Cf. [Using Pipe](https://petabridge.com/blog/akkadotnet-async-actors-using-pipeto/)
-
-#### Can't rely on DI
-
-Some actors live very short lives - they might only be used for a single request before they’re shutdown and discarded. Other actors of the same type can potentially live forever and will remain in memory until the application process is terminated. This is a problem for most DI containers as most of them expect to work with objects that have fairly consistent lifecycles - not a blend of both. On top of that, many disposable resources such as database connections get recycled in the background as a result of connection pooling - so your long-lived actors may suddenly stop working if you’re depending on a DI framework to manage the lifecycle of that dependency for you.
-
-Thus it’s considered to be a good practice for actors to manage their own dependencies, rather than delegate that work to a DI framework.
-
-If an actor needs a new database connection, it’s better for the actor to fetch that dependency itself than to trust that the DI framework will do the right thing. Because most DI frameworks are extremely sloppy about cleaning up resources and leak them all over the place, as we’ve verified through extensive testing and framework comparisons. The only DI framework that works correctly by default with Akka.NET actors is Autofac.
-
-#### Avoid awaiting async methods
-
-Actors are inherently asynchronous and concurrent - every time you send a message to an actor you’re dispatching work asynchronously to it. But because the async and await keywords aren’t there, a commonly held view among some new Akka.NET users is that therefore the IActorRef.Tell operation must be “blocking.” This is incorrect - Tell is asynchronous; it puts a message into the back of the destination actor’s mailbox and moves on. The actor will eventually process that message once it makes it to the front of the mailbox.
-
-Moreover, inside many Receive methods we see end users develop lots of nested async / await operations inside an individual message handler. There’s a cost overlooked by most users to doing this: the actor can’t process any other messages between each await operation because those awaits are still part of the “1 message at a time” guarantee for the original message!
-
-## Communications with other apps
-
-### Add a REST layer
-
-How to expose your actor based system to the world? You can try to do so by leveraging Akka.Remote package with its location transparency feature, but it would imply that all your clients use Akka.NET as well. It’s one hell of an assumption in this day and age when microservices rule the world. So we go for REST, then. 
-
-[Proposed Implementation](https://havret.io/akka-net-asp-net-core)
-[Code Sample](https://github.com/Havret/akka-net-asp-net-core)
-[Another Example](https://medium.com/@FurryMogwai/building-a-basket-micro-service-using-asp-net-core-and-akka-net-ea2a32ca59d5)
-
-### Akka Cluster
-
-https://github.com/petabridge/akkadotnet-code-samples/tree/master/Cluster.WebCrawler
-https://www.freecodecamp.org/news/how-to-make-a-simple-application-with-akka-cluster-506e20a725cf/
-
-An akka cluster represents a fault-tolerant, elastic, decentralized peer-to-peer network of Akka.NET applications with no single point of failure or bottleneck
-
-Akka.Cluster is a layer of abstraction on top of Akka.Remote, that puts Remoting to use for a specific structure: clusters of applications. Under the hood, Akka.Remote powers Akka.Cluster, so anything you could do with Akka.Remote is also supported by Akka.Cluster.
-
-Akka Cluster gives you out-of-the-box the discovery of members in the same cluster. Using Cluster Aware Routers it is possible to balance the messages between actors in different nodes. It is also possible to choose the balancing policy, making load-balancing a piece of cake!
-
-#### Types of routers:
+There are two types of routers: 
 
 * Group Router: The actors to send the messages to — called routees — are specified using their actor path. The routers share the routees created in the cluster. 
 
 ![Group Router](\images\1_aRVBb-_v2dBpTV8m97Pd3w.png)
 
-
 * Pool Router — The routees are created and deployed by the router, so they are its children in the actor hierarchy. Routees are not shared between routers. This is ideal for a master-slave scenario, where each router is the master and its routees the slaves.
 
 ![Pool Router](\images\1_ofa_x3hkM_sMzH5Nzum_Gg.png)
 
-#### Use Cases
-
-Akka.Cluster lends itself naturally to high availability scenarios.
-
-To put it bluntly, you should use clustering in any scenario where you have some or all of the following conditions:
-* A sizable traffic load
-* Non-trivial to perform
-* An expectation of fast response times
-* The need for elastic scaling (e.g. bursty workloads)
-* A microservices architecture
-
-Some of the use cases where Akka.Cluster emerges as a natural fit are in:
-* Analytics
-* Marketing Automation
-* Multiplayer Games
-* Devices Tracking / Internet of Things
-* Alerting & Monitoring Systems
-* Recommendation Engines
-* Dynamic Pricing
-* ...
