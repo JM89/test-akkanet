@@ -126,7 +126,7 @@ Note that if a parent is stopped, all children will be recursively stopped as we
 
 #### Actor lifecycle
 
-![lifecycle](\images\lifecycle_methods.png)
+![lifecycle](images/lifecycle_methods.png)
 
 Because of the nature of actors, Dependency Injection will not necessarily work that well with the actors and can't be relied on.  
 
@@ -159,9 +159,9 @@ There are two types of routers:
 
 * Group Router: The actors to send the messages to — called routees — are specified using their actor path. The routers share the routees created in the cluster. 
 
-![Group Router](\images\1_aRVBb-_v2dBpTV8m97Pd3w.png)
+![Group Router](images/1_aRVBb-_v2dBpTV8m97Pd3w.png)
 
 * Pool Router — The routees are created and deployed by the router, so they are its children in the actor hierarchy. Routees are not shared between routers. This is ideal for a master-slave scenario, where each router is the master and its routees the slaves.
 
-![Pool Router](\images\1_ofa_x3hkM_sMzH5Nzum_Gg.png)
+![Pool Router](images/1_ofa_x3hkM_sMzH5Nzum_Gg.png)
 
