@@ -7,6 +7,7 @@
 - [Actors Vs Objects](https://anthonylebrun.silvrback.com/actors-vs-objects)
 - [Akka.NET Stumbling Blocks](https://petabridge.com/blog/top-7-akkadotnet-stumbling-blocks/)
 - [What problems does the actor model solve?](https://doc.akka.io/docs/akka/2.5.3/scala/guide/actors-intro.html)
+- [What is Akka.NET?](https://getakka.net/articles/intro/what-is-akka.html)
 
 ## Actor Model
 
@@ -49,6 +50,10 @@ In the actor model approach, each actor has its own dedicated thread and memory,
 
 One of the important principle of OOP is encapsulation, the internal object state is only accessible through getters and setters from the other classes. By not letting the actors calling directly each other, the actor model covers the encapsulation in a more isolated way.
 
+#### Distribution
+
+Since the actors are built is a more isolated way, they share nothing (except contract definition) so they can be split into different services and as a matter of fact, machines. Distribution will allow a better scability of each individual component. 
+
 ### Main concepts
 
 App1 solution is a sample code for discovering the main concepts. 
@@ -59,11 +64,65 @@ The aim of the application is to read all the files of a directory provided by t
 * **Currency Checker Actor** (cc): who will call the FX API
 * **File Reader Actors** (fr0): spawned by the Console Reader for each file to read the file one row at a time and tell the currency to process to the currency checker
 
-#### Actor Communication
+#### Actors Actions
+
+Actors can:
+* communicate with asynchronous messaging instead of method calls
+* manage their own state
+* when receiving a message: create child actors, send messages to other actors, supervise child actors
+
+#### Context & Configuration
+
+All actors live in a context, top level actors lives in the ActorSystem and children actors live in the parent context. The context holds metadata about the actors, for instance Sender's information. There should be only one ActorSystem base context by application as this is a very costly object to create. 
+
+In order to initialize an actor, you define a Props configuration class. This Props class contains environment configurations that can be reused for deployment purpose (route mapping..). [HOCON configuration](https://getakka.net/articles/concepts/configuration.html) can be used to specify these options. 
+
+#### Messaging
+
+Actors communicate with each other by exchanging messages, rather than calling directly methods. 
+In order to send messages to another actor, you must use its IActorRef (reference or handle to an actor) and the ActorSystem takes care of delivery the messages for you. After receiving a message, the actor do whatever it is dedicated to: send a request, write on disk...
+
+![img](images/App1-02.png)
+
+The messages will be received into the mailbox of the receiver actor (behavior isolated by the frameworks), in case the actor is not "available", busy or restarting, the message will be kept in the mailbox and distributed as soon as possible.
+
+Another way of sending messages is to use explicitly its receiver address or ActorPath. This method called ActorSelection is not advised (see ["When Should I Use ActorSelection."](https://petabridge.com/blog/when-should-I-use-actor-selection/)). An address looks like this: 
+
+```text
+akka.tcp://MyActorSystem@localhost:9001/user/mynode/mychild
+```
+
+Example of use:
+```csharp
+Context.ActorSelection("akka://MyActorSystem/user/validationActor").Tell(message);
+```
+
+As an alternative, you can pass an IActorRef inside a message to hide the actor-implementation chosen from the receiver (and promote loose coupling). 
 
 #### Hierarchy & Supervision
 
+Actors live in a hierarchy / a tree. Actors created from the ActorSystem are called "Guardians". The base actor (/user) is the Root Guardian. Other nodes are created from other parents, from their own contexts.
+
+![img](images/App1-01.png)
+
+Supervision is the mechanism of failure recovery in the actor system. Its aim is to contain and isolate the errors; and self-heal; without impacting any other actor, part of the system. Actors can spawn children, that are then under the supervision of their parent. In case of unhandled exception thrown by a child, the parent actor will be in charge of restarting, stopping or resuming the child; it can also decide to cascade the error to its own parent. These actions are called "directives". Two strategies are available: either only the responsible child is "punished" or all children are. This failover behavior is defined in the parent actor as you see fit. The framework will not allow an actor to crash the overall system. 
+
+As we design our actor system, we will be pushing the "dangerous" actions (blocking or IO/network related). 
+
+Note that if a parent is stopped, all children will be recursively stopped as well. 
+
+#### Actor lifecycle
+
+![lifecycle](\images\lifecycle_methods.png)
+
 ## Actor Model Frameworks in .NET
+
+There are few actor model frameworks in .NET:
+* Akka.NET
+* Proto.Actor comes as a successor of Akka.NET. The original creator decided to rebuild another framework, to extend and improve Akka.Net.
+* Orleans
+
+[Benchmark Akka.NET vs Proto.Actor](https://github.com/Blind-Striker/actor-model-benchmarks)
 
 ## Integration with the REST of the world
 
@@ -72,93 +131,6 @@ The aim of the application is to read all the files of a directory provided by t
 ### Integration to ASP.NET Core
 
 # Notes
-
-## Actor Model
-
-### Proto.Actor
-
-Proto.Actor is a Next generation Actor Model framework.
-
-Proto.Actor was created by Roger Johansson, the original creator of Akka.NET. The reason for creating yet another actor model framework was due to the many design issues faced while building Akka.NET. Akka.NET required the team to build custom thread pools, custom network layers, custom serialization, custom configuration support and much more. All interesting topics on their own, but yield a huge cost in terms of development and maintenance hours.
-
-Proto.Actor focuses on only solving the actual problems at hand, concurrency and distributed programming by reusing existing proven building blocks for all the secondary aspects.
-
-Proto.Actor uses Protobuf for serialization, a decision that vastly simplifies the way Proto.Actor works. Message based systems should be about passing information, not passing complex OOP object graphs or code.
-
-Proto.Actor also uses gRPC, leveraging HTTP/2 streams for network communication.
-
-[Benchmark Akka.NET vs Proto.Actor](https://github.com/Blind-Striker/actor-model-benchmarks)
-
-### Actors vs Objects
-
-Distribution: The second implication of share nothing is that technically actors don't have to live on the same machine. In fact, certain implementations of the actor model (like the Erlang VM) let you spawn actors transparently on different nodes. That is the beauty of the actor model: it redefines what concurrency is. Traditionally concurrency is thought of as using multiple cores on one machine at the same time. In the world of actors, the concept of concurrency not only includes scaling across CPU cores, but scaling across a computer network.
-
-### Actors communication
-
-Actors communicate with each other just as humans do, by exchanging messages. 
-
-You code actors to handle messages they receive, and actors can do whatever you need them to in order to handle a message. Talk to a database, write to a file, change an internal variable, or anything else you might need.
-
-In addition to processing a message it receives, an actor can:
-* Create other actors
-* Send messages to other actors (such as the Sender of the current message)
-* Change its own behavior and process the next message it receives differently
-
-All actors are created within a certain context. That is, they are "actor of" a context. The base context is defined by Akka.Actor.ActorSystem. The Context holds metadata about the current state of the actor, such as the Sender of the current message and things like current actors Parent or Children.
-
-You never talk directly to an actor—you send messages to its IActorRef (reference or handle to an actor) and the ActorSystem takes care of delivering those messages for you. The purpose of an IActorRef is to support sending messages to an actor through the ActorSystem. 
-
-#### Configuration
-
-Props is a configuration class that encapsulates all the information needed to make an instance of a given type of actor. Props get extended to contain deployment information and other configuration details that are needed to do remote work. For example, Props are serializable, so they can be used to remotely create and deploy entire groups of actors on another machine somewhere on the network! Props support a lot of the advanced features (clustering, remote actors, etc) that give Akka.NET the serious horsepower which makes it interesting.
-
-#### Supervision
-
-Supervision is the basic concept that allows your actor system to quickly isolate and recover from failures. Every actor has another actor that supervises it, and helps it recover when errors occur. Every actor has a parent, and some actors have children (created from their own context). Parents supervise their children. The "guardians" are the root actors of the entire system, whenever you make an actor directly from the context of the actor system itself, that new actor is a top level actor. The / actor is the base actor of the entire actor system, and may also be referred to as "The Root Guardian." 
-
-Every actor has an address. To send a message from one actor to another, you just have to know it's address or "ActorPath". 
-
-For example, if we were running on localhost, the full address of actor b2 would be akka.tcp://MyActorSystem@localhost:9001/user/a2/b2 with a2 parent of b2. 
-
-When things go wrong, that's when! Whenever a child actor has an unhandled exception and is crashing, it reaches out to its parent for help and to tell it what to do. Specifically, the child will send its parent a message that is of the Failure class. Then it's up to the parent to decide what to do.
-
-When it receives an error from its child, a parent can take one of the following actions ("directives"). The supervision strategy maps different exception types to these directives, allowing you to handle different types of errors as appropriate.
-
-Types of supervision directives (i.e. what decisions a supervisor can make): Restart the child (default); Stop the child (permanently terminates), Escalate the error (and stop itself): this is the parent saying "I don't know what to do! I'm gonna stop everything and ask MY parent!", Resume processing (ignores the error). There are two built-in supervision strategies: One-For-One says that the directive issued by the parent only applies to the failing child actor. All-For-One says that the directive issued by the parent applies to the failing child actor AND all of its siblings.
-
-The whole point of supervision strategies and directives is to contain failure within the system and self-heal, so the whole system doesn't crash. We push potentially-dangerous operations from a parent to a child, whose only job is to carry out the dangerous task (such as a nasty network call). 
-
-If the parent actor is stopped, all of its children are recursively stopped, too. 
-
-Restarts are not visible from the outside: collaborating actors can keep continuing sending messages while the target actor restarts.
-
-Eg. Implementation of a file reader
-
-![img](images/App1-01.png)
-
-![img](images/App1-02.png)
-
-#### Actor Selection
-
-We know that we need a handle to an actor in order to send it a message and get it to do work. But now we have actors all over the place in this hierarchy, and don't always have a direct link (IActorRef) to the actor(s) we want to send messages to.
-
-ActorSelection is nothing more than using an ActorPath to get a handle to an actor or actors so you can send them a message, without having to store their actual IActorRefs.
-
-However, be aware that while ActorSelection is how you look up an IActorRef, it's not inherently a 1-1 lookup to a single actor.
-
-In general, you should always try to use IActorRefs instead. But there are a couple of scenarios where ActorSelection are the right tool for the job and we cover those in more detail here: ["When Should I Use ActorSelection."](https://petabridge.com/blog/when-should-I-use-actor-selection/)
-
-```csharp
-Context.ActorSelection("akka://MyActorSystem/user/validationActor").Tell(message);
-```
-
-#### IActorRef being passed into message
-
-Another alternative is to pass the IActorRef inside a message that is getting sent somewhere else in the system for processing. When that message is received, the receiving actor will know everything it needs to in order to do its job without the implementation details. This pattern actually promotes loose coupling.
-
-### Actor lifecycle
-
-![lifecycle](\images\lifecycle_methods.png)
 
 ### Stumbling blocks
 
