@@ -151,17 +151,3 @@ While the Akka.Remote and Akka.Cluster allows to deploy distributed actor system
 * [Proposed Implementation](https://havret.io/akka-net-asp-net-core) & [Code Sample](https://github.com/Havret/akka-net-asp-net-core)
 * [Another Example](https://medium.com/@FurryMogwai/building-a-basket-micro-service-using-asp-net-core-and-akka-net-ea2a32ca59d5)
 
-#### Distributed Services
-
-Akka.Cluster is a layer of abstraction on top of Akka.Remote to give the ability of discovering members in the same cluster and using routers to balance the messages between actors in different nodes.
-
-There are two types of routers: 
-
-* Group Router: The actors to send the messages to — called routees — are specified using their actor path. The routers share the routees created in the cluster. 
-
-![Group Router](images/1_aRVBb-_v2dBpTV8m97Pd3w.png)
-
-* Pool Router — The routees are created and deployed by the router, so they are its children in the actor hierarchy. Routees are not shared between routers. This is ideal for a master-slave scenario, where each router is the master and its routees the slaves.
-
-![Pool Router](images/1_ofa_x3hkM_sMzH5Nzum_Gg.png)
-
