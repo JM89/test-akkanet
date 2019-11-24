@@ -1,39 +1,37 @@
 version: '3'
 
+#https://getakka.net/articles/remoting/deployment.html
+
 services:
-  lighthouse:
-    image: petabridge/lighthouse:v0.9.2
-    ports:
-      - '9110:9110'
-      - '4053:4053'
-    environment:
-      ACTORSYSTEM: "mycluster"
-      CLUSTER_IP: lighthouse
-      CLUSTER_PORT: 4053
-      CLUSTER_SEEDS: "akka.tcp://mycluster@lighthouse:4053"
+  # lighthouse:
+    # image: petabridge/lighthouse:v0.9.2
+    # ports:
+      # - '9110:9110'
+      # - '4053:4053'
+    # environment:
+      # ACTORSYSTEM: "mycluster"
+      # CLUSTER_IP: lighthouse
+      # CLUSTER_PORT: 4053
+      # CLUSTER_SEEDS: "akka.tcp://mycluster@lighthouse:4053"
 
-  ConsoleApp2.Ping:
-    image: ConsoleApp2.Ping
+  app2-ping:
     build:
       context: .
-      dockerfile: src/ConsoleApp2.Ping/Dockerfile
-    ports:
-      - '8080:80'
+      dockerfile: ConsoleApp2.Ping/Dockerfile
     environment:
-      CLUSTER_SEEDS: "akka.tcp://webcrawler@lighthouse:4053"
-      CLUSTER_IP: ConsoleApp2.Ping
-      CLUSTER_PORT: 0
-    depends_on:
-      - "lighthouse"
+      # CLUSTER_SEEDS: "akka.tcp://mycluster@lighthouse:4053"
+      # CLUSTER_IP: ping
+      # CLUSTER_PORT: 0
+    # depends_on:
+      # - "lighthouse"
 
-  ConsoleApp2.Pong:
-    image: ConsoleApp2.Pong
+  app2-pong:
     build:
       context: .
-      dockerfile: src/ConsoleApp2.Pong/Dockerfile
+      dockerfile: ConsoleApp2.Pong/Dockerfile
     environment:
-      CLUSTER_SEEDS: "akka.tcp://webcrawler@lighthouse:4053"
-      CLUSTER_IP: ConsoleApp2.Pong
-      CLUSTER_PORT: 0
-    depends_on:
-      - "lighthouse"
+      # CLUSTER_SEEDS: "akka.tcp://mycluster@lighthouse:4053"
+      # CLUSTER_IP: pong
+      # CLUSTER_PORT: 0
+    # depends_on:
+      # - "lighthouse"

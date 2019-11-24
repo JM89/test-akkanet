@@ -2,24 +2,9 @@
 	actor {
 		provider = cluster
 		deployment {
-			/ping {
-				router = routerping
-				routees.paths = ["/user/ping"]
-				cluster {
-					enabled = on
-					allow-local-routees = on
-					use-role = ping
-				}
-			}
-
-			/pong {
-				router = routerpong
-				routees.paths = ["/user/pong"]
-				cluster {
-					enabled = on
-					allow-local-routees = on
-					use-role = ping
-				}
+			/workers {
+				router = broadcast-group
+				routees.paths = ["/user/ping", "/user/pong"]
 			}
 		}
 	}

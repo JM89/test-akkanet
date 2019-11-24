@@ -18,7 +18,7 @@ namespace ConsoleApp2.Pong
         {
             var config = HoconLoader.ParseConfig("config.hocon");
             ClusterSystem = ActorSystem.Create("mycluster", config.BootstrapFromDocker());
-            var router = ClusterSystem.ActorOf(Props.Empty.WithRouter(FromConfig.Instance), "router-ping");
+            var router = ClusterSystem.ActorOf(Props.Empty.WithRouter(FromConfig.Instance), "workers");
             ClusterSystem.ActorOf(Props.Create(() => new PongActor(router)), "pong");
             return true;
         }
